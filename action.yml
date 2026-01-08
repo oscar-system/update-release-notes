@@ -8,6 +8,7 @@ inputs:
   conffile:
     description: "config file path"
     required: true
+  
 
 outputs:
   chagenlogfile:
@@ -33,4 +34,5 @@ runs:
       shell: bash
       env:
         CONFFILE: "${{ inputs.conffile }}"
+        GH_TOKEN: ${{ github.token }}
       run: "python3 ${{ github.action_path }}/release-notes.py ${{ inputs.version }}"
