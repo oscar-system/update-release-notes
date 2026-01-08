@@ -41,10 +41,6 @@ if ENABLE_TWOLEVEL:
     REQUIRE_TWOLEVEL = conf['requiretwolevel']
 
 extra = conf['extra']
-if extra:
-    extra = eval(extra)
-else:
-    extra = ""
 
 # the following loads a dict of {LABEL: DESCRIPTION}; the first entry is the name of a GitHub label
 # (be careful to match them precisely), the second is a headline for a section the release notes;
@@ -395,11 +391,18 @@ def main(new_version: str) -> None:
         release_type = 1
         previous_minor = minor - 1
         basetag = f"v{major}.{minor}dev"
+        minor = previous_minor # dirty hack for OSCAR
     else:
         # "minor" release which changes just the patchlevel
         release_type = 2
         previous_patchlevel = patchlevel - 1
         basetag = f"v{major}.{minor}.{previous_patchlevel}"
+    
+    global extra
+    if not extra:
+        extra = ""
+    else:
+        extra = eval(extra)
 
     if release_type == 2:
         timestamp = get_tag_date(basetag)
