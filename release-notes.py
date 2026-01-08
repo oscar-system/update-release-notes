@@ -426,8 +426,9 @@ def main(new_version: str) -> None:
     # print(json.dumps(prs, sort_keys=True, indent=4))
 
     # reset changelog file to state tracked in git
-
-    subprocess.run(f'git checkout -- {FINALFILE}'.split(), check=True)
+    # only if not running on github CI
+    if not os.getenv("GITHUB_ACTIONS"):
+        subprocess.run(f'git checkout -- {FINALFILE}'.split(), check=True)
 
     changes_overview(prs, new_version)
 
