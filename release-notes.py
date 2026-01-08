@@ -28,7 +28,9 @@ NEWFILE = f"{dirpath}/new.md"
 FINALFILE = f"{repopath}/CHANGELOG.md"
 
 # read config file
-with open('config.toml', 'rb') as conffile:
+CONFFILEPATH = os.getenv("CONFFILE")
+assert CONFFILEPATH, "config file not provided. Please set env var CONFFILE."
+with open('CONFFILEPATH', 'rb') as conffile:
     conf = tomli.load(conffile)
 
 REPONAME = conf['reponame']

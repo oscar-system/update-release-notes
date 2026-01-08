@@ -30,8 +30,10 @@ runs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install -r "${{ github.action_path }}/requirements.txt"
-        
+
     - name: "make changelog"
       id: make-changelog
       shell: bash
+      env:
+        CONFFILE: "${{ inputs.conffile }}"
       run: "python3 ${{ github.action_path }}/release-notes.py ${{ inputs.version }}"
