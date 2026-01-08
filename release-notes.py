@@ -204,7 +204,7 @@ def changes_overview(
 
     # Could also introduce some consistency checks here for wrong combinations of labels
     notice("Writing release notes into file " + NEWFILE)
-    with open(NEWFILE, "w", encoding="utf-8") as relnotes_file:
+    with open(NEWFILE, "w", encoding="ascii") as relnotes_file:
         prs_with_use_title = [
             pr for pr in prs if
             has_label(pr, "release notes: use title") or
