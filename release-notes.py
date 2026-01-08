@@ -40,6 +40,12 @@ REQUIRE_TWOLEVEL = False
 if ENABLE_TWOLEVEL:
     REQUIRE_TWOLEVEL = conf['requiretwolevel']
 
+extra = conf['extra']
+if extra:
+    extra = eval(extra)
+else:
+    extra = ""
+
 # the following loads a dict of {LABEL: DESCRIPTION}; the first entry is the name of a GitHub label
 # (be careful to match them precisely), the second is a headline for a section the release notes;
 # any PR with the given label is put into the corresponding section; each PR is put into only one
@@ -383,22 +389,17 @@ def split_pr_into_changelog(prs: List):
 
 def main(new_version: str) -> None:
     major, minor, patchlevel = map(int, new_version.split("."))
-    extra = ""
     release_type = 0 # 0 by default, 1 for point release, 2 for patch release
     if patchlevel == 0:
         # "major" release which changes just the minor version
         release_type = 1
         previous_minor = minor - 1
         basetag = f"v{major}.{minor}dev"
-        # *exclude* PRs backported to previous stable-1.X branch
-        #extra = f'-label:"backport {major}.{previous_minor}.x done"'
     else:
         # "minor" release which changes just the patchlevel
         release_type = 2
         previous_patchlevel = patchlevel - 1
         basetag = f"v{major}.{minor}.{previous_patchlevel}"
-        # *include* PRs backported to current stable-4.X branch
-        #extra = f'label:"backport {major}.{minor}.x done"'
 
     if release_type == 2:
         timestamp = get_tag_date(basetag)
