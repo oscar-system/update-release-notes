@@ -40,7 +40,7 @@ REQUIRE_TWOLEVEL = False
 if ENABLE_TWOLEVEL:
     REQUIRE_TWOLEVEL = conf['requiretwolevel']
 
-extra = conf['extra']
+extra = conf.get('extra')
 
 # the following loads a dict of {LABEL: DESCRIPTION}; the first entry is the name of a GitHub label
 # (be careful to match them precisely), the second is a headline for a section the release notes;
