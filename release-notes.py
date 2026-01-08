@@ -30,7 +30,7 @@ FINALFILE = f"{repopath}/CHANGELOG.md"
 # read config file
 CONFFILEPATH = os.getenv("CONFFILE")
 assert CONFFILEPATH, "config file not provided. Please set env var CONFFILE."
-with open('CONFFILEPATH', 'rb') as conffile:
+with open(CONFFILEPATH, 'rb') as conffile:
     conf = tomli.load(conffile)
 
 REPONAME = conf['reponame']
