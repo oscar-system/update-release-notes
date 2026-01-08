@@ -11,6 +11,9 @@ inputs:
   version:
     description: "New version number"
     required: false
+  conffile:
+    description: "config file path"
+    required: true
 
 outputs:
   chagenlogfile:
