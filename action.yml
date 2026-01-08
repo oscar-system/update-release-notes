@@ -35,4 +35,7 @@ runs:
       env:
         CONFFILE: "${{ inputs.conffile }}"
         GH_TOKEN: ${{ github.token }}
-      run: "python3 ${{ github.action_path }}/release-notes.py ${{ inputs.version }}"
+      run: |
+        pwd
+        ls -lah
+        "python3 ${{ github.action_path }}/release-notes.py ${{ inputs.version }}"
