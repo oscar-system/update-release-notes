@@ -2,12 +2,6 @@ name: "Changelog action"
 description: "Updates a changelog file for projects in the oscar-system universe"
 
 inputs:
-  tier1:
-    description: 'Tier 1 in multi tier changelog'
-    required: true
-  tier2:
-    description: 'Tier 2 in multi tier changelog'
-    required: true
   version:
     description: "New version number"
     required: false
