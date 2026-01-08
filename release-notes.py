@@ -25,7 +25,7 @@ ownpath = os.path.abspath(sys.argv[0])
 dirpath = os.path.dirname(ownpath)
 repopath = os.path.dirname(os.path.dirname(os.path.dirname(ownpath)))
 NEWFILE = f"{dirpath}/new.md"
-FINALFILE = f"{repopath}/CHANGELOG.md"
+FINALFILE = os.getenv("CHANGELOGFILE", f"{repopath}/CHANGELOG.md")
 
 # read config file
 CONFFILEPATH = os.getenv("CONFFILE")
