@@ -204,7 +204,7 @@ def changes_overview(
 
     # Could also introduce some consistency checks here for wrong combinations of labels
     notice("Writing release notes into file " + NEWFILE)
-    with open(NEWFILE, "w", encoding="ascii") as relnotes_file:
+    with open(NEWFILE, "w", encoding="UTF-8") as relnotes_file:
         prs_with_use_title = [
             pr for pr in prs if
             has_label(pr, "release notes: use title") or
@@ -338,7 +338,7 @@ which we think might affect some users directly.
             relnotes_file.write('\n')
 
         # now read back the rest of changelog.md into newfile
-        with open(FINALFILE, 'r', encoding='ascii') as oldchangelog:
+        with open(FINALFILE, 'r', encoding='UTF-8') as oldchangelog:
             oldchangelog.seek(262)
             for line in oldchangelog.readlines():
                 relnotes_file.write(line)
