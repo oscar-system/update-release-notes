@@ -448,11 +448,8 @@ if __name__ == "__main__":
             check=True,
             capture_output=True
         )
-        print(itag.stdout)
-        print(itag.stderr)
+        print(itag)
         itag = itag.stdout.decode()
-        print(itag)
-        print(itag)
         itag = json.loads(itag)["name"][1:]
         itag = itag.split('.')
         itag[-1] = str(int(itag[-1])+1)
