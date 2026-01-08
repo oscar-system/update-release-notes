@@ -19,10 +19,36 @@ import subprocess
 import sys
 from datetime import datetime
 from typing import Any, Dict, List
+import tomli
 
+ownpath = os.path.abspath(sys.argv[0])
+dirpath = os.path.dirname(ownpath)
+repopath = os.path.dirname(os.path.dirname(os.path.dirname(ownpath)))
+NEWFILE = f"{dirpath}/new.md"
+FINALFILE = f"{repopath}/CHANGELOG.md"
 
-newfile = f"new.md"
-finalfile = f"CHANGELOG.md"
+# read config file
+with open('config.toml', 'rb') as conffile:
+    conf = tomli.load(conffile)
+
+REPONAME = conf['reponame']
+PROJECTNAME = REPONAME.split('/')[-1]
+ENABLE_TWOLEVEL = conf["enabletwolevel"]
+REQUIRE_TWOLEVEL = False
+if ENABLE_TWOLEVEL:
+    REQUIRE_TWOLEVEL = conf['requiretwolevel']
+
+# the following loads a dict of {LABEL: DESCRIPTION}; the first entry is the name of a GitHub label
+# (be careful to match them precisely), the second is a headline for a section the release notes;
+# any PR with the given label is put into the corresponding section; each PR is put into only one
+# section, the first one from this list it fits in.
+# See also <https://github.com/gap-system/gap/issues/4257>.
+
+TOPICS = conf['topics']
+PRTYPES = {}
+if ENABLE_TWOLEVEL:
+    PRTYPES = conf['prtypes']
+
 
 def usage(name: str) -> None:
     print(f"Usage: `{name} [NEWVERSION]`")
@@ -49,8 +75,6 @@ def is_existing_tag(tag: str) -> bool:
 
 def find_previous_version(version: str) -> str:
     major, minor, patchlevel = map(int, version.split("."))
-    if major != 1:
-        error("unexpected OSCAR version, not starting with '1.'")
     if patchlevel != 0:
         patchlevel -= 1
         return f"{major}.{minor}.{patchlevel}"
@@ -71,22 +95,14 @@ def notice(s):
 
 def error(s):
     print(s)
-    exit()
+    sys.exit(1)
 
 def warning(s):
     print('===================================================')
     print(s)
     print('===================================================')
 
-# the following is a list of pairs [LABEL, DESCRIPTION]; the first entry is the name of a GitHub label
-# (be careful to match them precisely), the second is a headline for a section the release notes; any PR with
-# the given label is put into the corresponding section; each PR is put into only one section, the first one
-# one from this list it fits in.
-# See also <https://github.com/gap-system/gap/issues/4257>.
-with open('oscar-topics.json', 'r', encoding='utf-8') as topicfile:
-    topics = json.load(topicfile)
-with open('oscar-prtypes.json', 'r', encoding='utf-8') as prtypefile:
-    prtypes = json.load(prtypefile)
+
 
 def get_tag_date(tag: str) -> str:
     if is_existing_tag(tag):
@@ -109,7 +125,10 @@ def get_tag_date(tag: str) -> str:
 
 
 def get_pr_list(date: str, extra: str) -> List[Dict[str, Any]]:
-    query = f'merged:>={date} -label:"release notes: not needed" -label:"release notes: added" base:master {extra}'
+    query = (
+        f'merged:>={date} -label:"release notes: not needed" -label:"release notes: added"'
+        f'base:master {extra}'
+    )
     print("query: ", query)
     res = subprocess.run(
         [
@@ -127,19 +146,22 @@ def get_pr_list(date: str, extra: str) -> List[Dict[str, Any]]:
         capture_output=True,
         text=True,
     )
-    jsonList = json.loads(res.stdout.strip())
-    jsonList = sorted(jsonList, key=lambda d: d['number']) # sort by ascending PR number
-    return jsonList
+    json_list = json.loads(res.stdout.strip())
+    json_list = sorted(json_list, key=lambda d: d['number']) # sort by ascending PR number
+    return json_list
 
 
 def pr_to_md(pr: Dict[str, Any]) -> str:
     """Returns markdown string for the PR entry"""
     k = pr["number"]
-    title = pr["title"]
-    mdstring = f"- [#{k}](https://github.com/oscar-system/Oscar.jl/pull/{k}) {title}\n"
-    if has_label(pr,'release notes: use body'):
-        mdstring = body_to_release_notes(pr)
-        mdstring = mdstring.replace("- ", f"- [#{k}](https://github.com/oscar-system/Oscar.jl/pull/{k}) ")
+    if has_label(pr, 'release notes: use body'):
+        mdstring = re.sub(
+            r'^- ', f"- [#{k}](https://github.com/{REPONAME}/pull/{k}) ",
+            pr["body"]
+        )
+    else:
+        title = pr["title"]
+        mdstring = f"- [#{k}](https://github.com/{REPONAME}/pull/{k}) {title}\n"
     return mdstring
 
 def body_to_release_notes(pr):
@@ -149,10 +171,20 @@ def body_to_release_notes(pr):
         ## not found
         ## complain and return fallback
         print(f"Release notes section not found in PR number {pr['number']}!!")
-        return mdstring
-    index2 = body.find('---', index1)
-    # there are 17 characters from index 1 until the next line
-    mdstring = body[index1+17:index2]
+        return body
+    index2 = body.find('\n', index1) + 1 # the first line after the release notes line
+    bodylines = body[index2:].splitlines()
+    mdstring = ""
+    for line in bodylines:
+        line = line.rstrip()
+        if not line:
+            continue
+        if line.startswith('- '):
+            mdstring = f"{mdstring}\n{line}"
+        else:
+            break
+    if not mdstring:
+        warning(f"Empty release notes section for PR #{pr['number']} !")
     return mdstring
 
 
@@ -161,18 +193,20 @@ def has_label(pr: Dict[str, Any], label: str) -> bool:
 
 
 def changes_overview(
-    prs: List[Dict[str, Any]], startdate: str, new_version: str
+    prs: List[Dict[str, Any]], new_version: str
 ) -> None:
     """Writes files with information for release notes."""
 
     date = datetime.now().strftime("%Y-%m-%d")
-    release_url = f"https://github.com/oscar-system/Oscar.jl/releases/tag/v{new_version}"
+    release_url = f"https://github.com/{REPONAME}/releases/tag/v{new_version}"
 
     # Could also introduce some consistency checks here for wrong combinations of labels
-    notice("Writing release notes into file " + newfile)
-    with open(newfile, "w", encoding="utf-8") as relnotes_file:
+    notice("Writing release notes into file " + NEWFILE)
+    with open(NEWFILE, "w", encoding="utf-8") as relnotes_file:
         prs_with_use_title = [
-            pr for pr in prs if has_label(pr, "release notes: use title")
+            pr for pr in prs if
+            has_label(pr, "release notes: use title") or
+            has_label(pr, "release notes: use body")
         ]
         # Write out all PRs with 'use title'
         relnotes_file.write(
@@ -181,7 +215,7 @@ def changes_overview(
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
-tries to adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+tries to adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [{new_version}]({release_url}) - {date}
 
@@ -194,27 +228,33 @@ which we think might affect some users directly.
         totalPRs = len(prs)
         print(f"Total number of PRs: {totalPRs}")
         countedPRs = 0
-        for priorityobject in topics:
+        for priorityobject in TOPICS:
             matches = [
                 pr for pr in prs_with_use_title if has_label(pr, priorityobject)
             ]
+            original_length = len(matches)
             print("PRs with label '" + priorityobject + "': ", len(matches))
-            print(matches)
             countedPRs = countedPRs + len(matches)
             if len(matches) == 0:
                 continue
-            relnotes_file.write("### " + topics[priorityobject] + "\n\n")
-            if topics[priorityobject] == 'Highlights':
-                itervar = topics
+            relnotes_file.write("### " + TOPICS[priorityobject] + "\n\n")
+            if priorityobject == "breaking":
+                relnotes_file.write("> !These changes break compatibility from previous versions!")
+                relnotes_file.write("\n\n")
+            if priorityobject in ['release notes: highlight', 'breaking']:
+                itervar = TOPICS
             else:
-                itervar = prtypes
+                itervar = PRTYPES
             for typeobject in itervar:
                 if typeobject == priorityobject:
                     continue
                 matches_type = [
                     pr for pr in matches if has_label(pr, typeobject)
                 ]
-                print("PRs with label '" + priorityobject + "' and type '" + typeobject + "': ", len(matches_type))
+                print(
+                    f"PRs with label '{priorityobject}' and type '{typeobject}': "
+                    f"{len(matches_type)}"
+                )
                 if len(matches_type) == 0:
                     continue
                 relnotes_file.write(f"#### {itervar[typeobject]}\n\n")
@@ -222,23 +262,31 @@ which we think might affect some users directly.
                     relnotes_file.write(pr_to_md(pr))
                     prs_with_use_title.remove(pr)
                     matches.remove(pr)
-                    matches_type.remove(pr)
                 relnotes_file.write('\n')
+            # Items without a type label
+            if len(matches) > 0:
+                if len(matches) != original_length:
+                    relnotes_file.write("#### Miscellaneous changes\n\n")
+                for pr in matches:
+                    relnotes_file.write(pr_to_md(pr))
+                    prs_with_use_title.remove(pr)
+                relnotes_file.write('\n')
+
         print(f"Remaining PRs: {totalPRs - countedPRs}")
         # The remaining PRs have no "kind" or "topic" label from the priority list
         # (may have other "kind" or "topic" label outside the priority list).
         # Check their list in the release notes, and adjust labels if appropriate.
-        if len(prs_with_use_title) > 0:
+        if len(prs_with_use_title) > 0 and ENABLE_TWOLEVEL:
             relnotes_file.write("### Other changes\n\n")
-            for typeobject in prtypes:
+            for typeobject in PRTYPES:
                 matches_type = [
                     pr for pr in prs_with_use_title if has_label(pr, typeobject)
                 ]
                 len(matches_type)
-                print("PRs with label '" + priorityobject + "' and type '" + typeobject + "': ", len(matches_type))
+                print("PRs with type '" + typeobject + "': ", len(matches_type))
                 if len(matches_type) == 0:
                     continue
-                relnotes_file.write("#### " + prtypes[typeobject] + "\n\n")
+                relnotes_file.write("#### " + PRTYPES[typeobject] + "\n\n")
 
                 for pr in matches_type:
                     relnotes_file.write(pr_to_md(pr))
@@ -261,25 +309,18 @@ which we think might affect some users directly.
         if len(prs_with_use_title) > 0:
             relnotes_file.write(
                 "### **TODO** insufficient labels for automatic classification\n\n"
-                "The following PRs only have a topic label assigned to them, not a PR type. Either "
-                "assign a type label to them (e.g., `enhancement`), or manually move them to the "
-                "general section of the topic section in the changelog.\n\n")
+                "The following PRs have neither a topic label assigned to them, nor a PR type. \n"
+                "**Manual intervention required.**\n\n")
             for pr in prs_with_use_title:
-                for topic in topics:
-                    matches = [pr for pr in prs_with_use_title if has_label(pr, topic)]
-                    if len(matches) == 0:
-                        continue
-                    relnotes_file.write(f'#### {topics[topic]}\n\n')
-                    for match in matches:
-                        relnotes_file.write(pr_to_md(match))
-                        prs_with_use_title.remove(match)
-                    relnotes_file.write('\n')
+                relnotes_file.write(pr_to_md(pr))
+                relnotes_file.write('\n')
             relnotes_file.write('\n')
 
         # remove PRs already handled earlier
         prs = [pr for pr in prs if not has_label(pr, "release notes: to be added")]
         prs = [pr for pr in prs if not has_label(pr, "release notes: added")]
         prs = [pr for pr in prs if not has_label(pr, "release notes: use title")]
+        prs = [pr for pr in prs if not has_label(pr, "release notes: use body")]
 
         # Report PRs that have neither "to be added" nor "added" or "use title" label
         if len(prs) > 0:
@@ -295,58 +336,70 @@ which we think might affect some users directly.
             relnotes_file.write('\n')
 
         # now read back the rest of changelog.md into newfile
-        with open(finalfile, 'r') as oldchangelog:
+        with open(FINALFILE, 'r', encoding='ascii') as oldchangelog:
             oldchangelog.seek(262)
             for line in oldchangelog.readlines():
                 relnotes_file.write(line)
         # finally copy over this new file to changelog.md
-        os.rename(newfile, finalfile)
+        os.rename(NEWFILE, FINALFILE)
 
 def split_pr_into_changelog(prs: List):
     childprlist = []
+    toremovelist = []
     for pr in prs:
         if has_label(pr, 'release notes: use body'):
             mdstring = body_to_release_notes(pr).strip()
-            mdlines = mdstring.split('\r\n')
-            pattern = r'\{package: .*\}'
+            mdlines = mdstring.split('\n')
+            pattern = r'\{.*\}$'
             for line in mdlines:
-                if not '{package: ' in line:
-                    continue
-                mans = re.search(pattern, line)
-                packagestring = mans.group()[1:-1]
                 cpr = copy.deepcopy(pr)
-                mindex = line.find('{package:')
-                line = line[0:mindex]
-                cpr['labels'].append({'name': packagestring})
-                cpr['body'] = f'---\r\n## Release Notes\r\n{line}\r\n---'
+                mans = re.search(pattern, line)
+                if mans:
+                    label_list = mans.group().strip('{').strip('}').split(',')
+                    for label in label_list:
+                        label = label.strip()
+                        if not (label in PRTYPES or label in TOPICS):
+                            warning(
+                                f"PR number #{pr['number']}'s changelog body has label {label}, "
+                                "which is not a label we recognize ! We are ignoring this label. "
+                                "This might result in a TODO changelog item!"
+                            )
+                            continue
+                        cpr['labels'].append({'name': label})
+                    mindex = mans.span()[0]
+                    line = line[0:mindex]
+                else:
+                    warning(f"PR number #{pr['number']} is tagged as \"Use Body\", but the body "
+                            "does not provide tags! This will result in TODO changelog items!")
+                cpr['body'] = f'{line.strip()}\n'
                 childprlist.append(cpr)
-        prs.remove(pr)    
+                if pr not in toremovelist:
+                    toremovelist.append(pr)
     prs.extend(childprlist)
-    return prs
+    prlist = [pr for pr in prs if pr not in toremovelist]
+    return prlist
 
 def main(new_version: str) -> None:
     major, minor, patchlevel = map(int, new_version.split("."))
     extra = ""
     release_type = 0 # 0 by default, 1 for point release, 2 for patch release
-    if major != 1:
-        error("unexpected OSCAR version, not starting with '1.'")
     if patchlevel == 0:
-        # "major" OSCAR release which changes just the minor version
+        # "major" release which changes just the minor version
         release_type = 1
         previous_minor = minor - 1
         basetag = f"v{major}.{minor}dev"
         # *exclude* PRs backported to previous stable-1.X branch
-        extra = f'-label:"backport {major}.{previous_minor}.x done"'
+        #extra = f'-label:"backport {major}.{previous_minor}.x done"'
     else:
-        # "minor" OSCAR release which changes just the patchlevel
+        # "minor" release which changes just the patchlevel
         release_type = 2
         previous_patchlevel = patchlevel - 1
         basetag = f"v{major}.{minor}.{previous_patchlevel}"
         # *include* PRs backported to current stable-4.X branch
-        extra = f'label:"backport {major}.{minor}.x done"'
+        #extra = f'label:"backport {major}.{minor}.x done"'
 
     if release_type == 2:
-        startdate = get_tag_date(basetag)
+        timestamp = get_tag_date(basetag)
     else:
         # Find the timestamp of the last shared commit
         shared_commit = subprocess.run([
@@ -362,21 +415,19 @@ def main(new_version: str) -> None:
             "--format=\"%cI\"",
             shared_commit
         ], shell=False, check=True, capture_output=True).stdout.decode().strip().replace('"', '')
-        # date is first 10 characters of timestamp
-        startdate = timestamp[0:10]
     print("Base tag is", basetag)
-    print("Last common commit at ", startdate)
+    print("Last common commit at ", timestamp)
 
     print("Downloading filtered PR list")
-    prs = get_pr_list(startdate, extra)
+    prs = get_pr_list(timestamp, extra)
     prs = split_pr_into_changelog(prs)
     # print(json.dumps(prs, sort_keys=True, indent=4))
 
     # reset changelog file to state tracked in git
-    
-    subprocess.run(f'git checkout -- {finalfile}'.split(), check=True)
 
-    changes_overview(prs, startdate, new_version)
+    subprocess.run(f'git checkout -- {FINALFILE}'.split(), check=True)
+
+    changes_overview(prs, new_version)
 
 
 if __name__ == "__main__":

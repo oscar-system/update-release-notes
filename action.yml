@@ -27,4 +27,4 @@ runs:
     - name: "make changelog"
       id: make-changelog
       shell: bash
-      run: "python3 release-notes.py ${{ inputs.version }}"
+      run: "python3 ${{ github.action_path }} release-notes.py ${{ inputs.version }}"
