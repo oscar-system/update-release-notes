@@ -125,7 +125,7 @@ def get_tag_date(tag: str) -> str:
         res = json.loads(res.stdout.decode())
     else:
         error("tag does not exist!")
-    return res['createdAt'][0:10]
+    return res['createdAt']
 
 
 def get_pr_list(date: str, extra: str) -> List[Dict[str, Any]]:
