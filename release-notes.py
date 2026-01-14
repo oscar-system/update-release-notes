@@ -413,7 +413,12 @@ def main(new_version: str) -> None:
             "merge-base",
             basetag,
             "HEAD"
-        ], shell=False, check=True, capture_output=True).stdout.decode().strip()
+        ], shell=False, check=False, capture_output=True)
+        if shared_commit.returncode:
+            # that means a non zero return code, that means an error
+            # most likely, that 'xyz-dev' was not found, but leaving the reporting to be generic
+            warning("The script ran into a problem when running git merge-base!")
+            error(shared_commit.stderr.decode())
         timestamp = subprocess.run([
             "git",
             "show",
