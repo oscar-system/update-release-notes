@@ -1,5 +1,5 @@
-name: "Changelog action"
-description: "Updates a changelog file for projects in the oscar-system universe"
+name: "Update release notes"
+description: "Updates the release notes file for projects in the oscar-system universe"
 
 inputs:
   version:
@@ -8,14 +8,14 @@ inputs:
   conffile:
     description: "config file path"
     required: true
-  changelogfile:
-    description: "Path to changelog file"
+  releasenotesfile:
+    description: "Path to release notes file"
     required: true
   
 
 outputs:
   chagenlogfile:
-    description: "The updated changelog file"
+    description: "The updated release notes file"
     value: ""
 
 runs:
@@ -32,11 +32,11 @@ runs:
         python -m pip install --upgrade pip
         python -m pip install -r "${{ github.action_path }}/requirements.txt"
 
-    - name: "make changelog"
-      id: make-changelog
+    - name: "Make release notes"
+      id: make-release-notes
       shell: bash
       env:
         CONFFILE: ${{ inputs.conffile }}
         GH_TOKEN: ${{ github.token }}
-        CHANGELOGFILE: ${{ inputs.changelogfile }}
+        RELEASENOTESFILE: ${{ inputs.releasenotesfile }}
       run: "python3 ${{ github.action_path }}/release-notes.py ${{ inputs.version }}"

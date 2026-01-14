@@ -1,3 +1,72 @@
-# Changelog Action
+# Update Release Notes Action
 
-Action to produce a changelog file in oscar-system universe
+Action to update the release notes file in oscar-system universe
+
+## Usage
+
+> For now, the repository is still named `oscar-system/changelog-script`. This will soon be renamed
+> to `oscar-system/update-release-notes`.
+
+## Example
+
+Here's a full example workflow to use this action (in combination with) other actions available in
+the marketplace to update release notes and make a pull request with the updated file.
+
+```yml
+name: Update Changelog
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional version string'
+        required: false
+        type: string
+        default: ''
+# only run at most one instances of this workflow at a time for each branch
+# resp. tag. Starting a new one cancels previously running ones.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update-changelog:
+    runs-on: ubuntu-24.04
+
+    steps:
+    # Checkout the repository
+    - name: Checkout Repository
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    # Run the update script
+    - name: Run python script
+      uses: oscar-system/changelog-script@v1
+      with:
+        conffile: "dev/releases/config.toml"
+        releasenotesfile: "CHANGELOG.md"
+        version: ${{ inputs.version }}
+
+    # Configure git for the PR
+    - name: Set up git
+      run: |
+        git config user.name "changelog[bot]"
+        git config user.email "changelog[bot]@users.noreply.github.com"
+
+    # Commit the changes
+    - name: Commit Changes
+      run: |
+        git add CHANGELOG.md
+        git commit -m "Update changelog on $(date +'%Y-%m-%d')" || echo "Nothing to commit!"
+
+    # Create a pull request
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v8
+      with:
+        commit-message: "Update Changelog on $(date +'%Y-%m-%d')"
+        branch: update-changelog
+        title: "Update changelog"
+        base: master
+```
+
