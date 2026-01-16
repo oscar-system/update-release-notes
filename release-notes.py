@@ -427,6 +427,7 @@ def main(new_version: str) -> None:
             # most likely, that 'xyz-dev' was not found, but leaving the reporting to be generic
             warning("The script ran into a problem when running git merge-base!")
             error(shared_commit.stderr.decode())
+        shared_commit = shared_commit.stdout.decode()
         timestamp = subprocess.run([
             "git",
             "show",
