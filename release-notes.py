@@ -341,7 +341,15 @@ which we think might affect some users directly.
 
         # now read back the rest of changelog.md into newfile
         with open(FINALFILE, 'r', encoding='UTF-8') as oldchangelog:
-            oldchangelog.seek(262)
+            # we want to seek to the first line that starts with '##'
+            seektarget = 0
+            while True:
+                # there has to be a better solution than an infinite loop and break....
+                line = oldchangelog.readline()
+                if line.startswith('##'):
+                    seektarget = oldchangelog.tell() - len(line)
+                    break
+            oldchangelog.seek(seektarget)
             for line in oldchangelog.readlines():
                 relnotes_file.write(line)
         # finally copy over this new file to changelog.md
