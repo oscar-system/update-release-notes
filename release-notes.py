@@ -20,6 +20,7 @@ import sys
 from datetime import datetime
 from typing import Any, Dict, List
 import tomli
+from packaging.version import Version, parse
 
 ownpath = os.path.abspath(sys.argv[0])
 dirpath = os.path.dirname(ownpath)
@@ -478,26 +479,32 @@ if __name__ == "__main__":
     # len(sys.argvs) = 1 means no arguments were given
     if len(sys.argv) == 1:
         itag = guess_version()
-        if not itag:
-            itag = subprocess.run(
-                [
-                    "gh",
-                    "release",
-                    "list",
-                    "--json=name,isLatest",
-                    "-q",
-                    ".[] | select(.isLatest == true)"
-                ],
-                shell=False,
-                check=True,
-                capture_output=True
-            )
-            print(itag)
-            itag = itag.stdout.decode()
-            itag = json.loads(itag)["name"][1:]
-            itag = itag.split('.')
-            itag[-1] = str(int(itag[-1])+1)
-            itag = ".".join(itag)
+        jtag = subprocess.run(
+            [
+                "gh",
+                "release",
+                "list",
+                "--json=name,isLatest",
+                "-q",
+                ".[] | select(.isLatest == true)"
+            ],
+            shell=False,
+            check=True,
+            capture_output=True
+        )
+        print(jtag)
+        jtag = jtag.stdout.decode()
+        jtag = json.loads(jtag)["name"][1:]
+        jtag = jtag.split('.')
+        jtag[-1] = str(int(jtag[-1])+1)
+        jtag = ".".join(jtag)
+
+        # check which of itag and jtag is "newer"
+        # (because at least Hecke does not tag project.toml versions as -dev)
+        iver = parse(itag)
+        jver = parse(jtag)
+        if jver > iver:
+            itag = jtag
         main(itag)
     elif len(sys.argv) != 2:
         usage(sys.argv[0])
