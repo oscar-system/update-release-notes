@@ -432,7 +432,7 @@ def main(new_version: str) -> None:
             # most likely, that 'xyz-dev' was not found, but leaving the reporting to be generic
             warning("The script ran into a problem when running git merge-base!")
             error(shared_commit.stderr.decode())
-        shared_commit = shared_commit.stdout.decode()
+        shared_commit = shared_commit.stdout.decode().strip()
         timestamp = subprocess.run([
             "git",
             "show",
@@ -456,30 +456,52 @@ def main(new_version: str) -> None:
     changes_overview(prs, new_version)
 
 
+def guess_version():
+    #step1 grab version from toml file
+    versionstr = ''
+    if os.path.isfile('Project.toml'):
+        with open('Project.toml', 'rb') as conffile:
+            conf = tomli.load(conffile)
+            versionstr = conf.get('version', '')
+    if not versionstr:
+        # return emptyness if versionstring is empty
+        return versionstr
+
+    if versionstr.lower().endswith('-dev'):
+        versionstr = versionstr.split('-')[0]
+    # return 
+    return versionstr
+    
+
+
 if __name__ == "__main__":
-    # the argument is the new version
+    # len(sys.argvs) = 1 means no arguments were given
     if len(sys.argv) == 1:
-        itag = subprocess.run(
-            [
-                "gh",
-                "release",
-                "list",
-                "--json=name,isLatest",
-                "-q",
-                ".[] | select(.isLatest == true)"
-            ],
-            shell=False,
-            check=True,
-            capture_output=True
-        )
-        print(itag)
-        itag = itag.stdout.decode()
-        itag = json.loads(itag)["name"][1:]
-        itag = itag.split('.')
-        itag[-1] = str(int(itag[-1])+1)
-        itag = ".".join(itag)
+        itag = guess_version()
+        if not itag:
+            itag = subprocess.run(
+                [
+                    "gh",
+                    "release",
+                    "list",
+                    "--json=name,isLatest",
+                    "-q",
+                    ".[] | select(.isLatest == true)"
+                ],
+                shell=False,
+                check=True,
+                capture_output=True
+            )
+            print(itag)
+            itag = itag.stdout.decode()
+            itag = json.loads(itag)["name"][1:]
+            itag = itag.split('.')
+            itag[-1] = str(int(itag[-1])+1)
+            itag = ".".join(itag)
         main(itag)
     elif len(sys.argv) != 2:
         usage(sys.argv[0])
     else:
+        # version was provided as an argument
+        # (python counts arrays from 0)
         main(sys.argv[1])
