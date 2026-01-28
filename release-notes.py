@@ -398,7 +398,7 @@ def main(new_version: str) -> None:
         # "major" release which changes just the minor version
         release_type = 1
         previous_minor = minor - 1
-        basetag = f"v{major}.{minor}dev"
+        basetag = f"v{major}.{previous_minor}.0"
         minor = previous_minor # dirty hack for OSCAR
     else:
         # "minor" release which changes just the patchlevel
