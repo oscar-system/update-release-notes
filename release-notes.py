@@ -392,6 +392,9 @@ def split_pr_into_changelog(prs: List):
     return prlist
 
 def main(new_version: str) -> None:
+    global extra
+    if not extra:
+        extra = ""
     major, minor, patchlevel = map(int, new_version.split("."))
     release_type = 0 # 0 by default, 1 for point release, 2 for patch release
     if patchlevel == 0:
@@ -399,18 +402,20 @@ def main(new_version: str) -> None:
         release_type = 1
         previous_minor = minor - 1
         basetag = f"v{major}.{previous_minor}.0"
-        minor = previous_minor # dirty hack for OSCAR
+        if REPONAME.endswith('Oscar.jl'):
+            # dirty hack for OSCAR
+            minor = previous_minor
+        if extra:
+            extra = eval(extra)
     else:
         # "minor" release which changes just the patchlevel
         release_type = 2
         previous_patchlevel = patchlevel - 1
         basetag = f"v{major}.{minor}.{previous_patchlevel}"
-    
-    global extra
-    if not extra:
-        extra = ""
-    else:
-        extra = eval(extra)
+        if extra:
+            extra = eval(extra)
+            if REPONAME.endswith('Oscar.jl'):
+                extra = f"-{extra}"
 
     if release_type == 2:
         timestamp = get_tag_date(basetag)
