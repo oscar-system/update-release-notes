@@ -2,11 +2,6 @@
 
 Action to update the release notes file in oscar-system universe
 
-## Usage
-
-> For now, the repository is still named `oscar-system/changelog-script`. This will soon be renamed
-> to `oscar-system/update-release-notes`.
-
 ## Example
 
 Here's a full example workflow to use this action (in combination with) other actions available in
