@@ -161,7 +161,7 @@ def pr_to_md(pr: Dict[str, Any]) -> str:
     k = pr["number"]
     if has_label(pr, 'release notes: use body'):
         mdstring = re.sub(
-            r'^- ', f"- [#{k}](https://github.com/{REPONAME}/pull/{k}) ",
+            r'^[-*] ', f"- [#{k}](https://github.com/{REPONAME}/pull/{k}) ",
             pr["body"]
         )
     else:
