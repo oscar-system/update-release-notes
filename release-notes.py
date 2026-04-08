@@ -131,7 +131,7 @@ def get_tag_date(tag: str) -> str:
 
 def get_pr_list(date: str, extra: str) -> List[Dict[str, Any]]:
     query = (
-        f'merged:>={date} -label:"release notes: not needed" -label:"release notes: added"'
+        f'merged:>={date} -label:"release notes: not needed" -label:"release notes: added" '
         f'base:master {extra}'
     )
     print("query: ", query)
@@ -416,7 +416,9 @@ def main(new_version: str) -> None:
         if extra:
             extra = eval(extra)
             if REPONAME.endswith('Oscar.jl'):
-                extra = f"-{extra}"
+                # OSCAR specific hack only for patch releases
+                extra = extra[1:]   # remove the starting '-' from the label. this filters the query
+                                    # to show only PRs with the backport label
 
     if release_type == 2:
         timestamp = get_tag_date(basetag)
