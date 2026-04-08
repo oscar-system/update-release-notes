@@ -176,7 +176,11 @@ def body_to_release_notes(pr):
         ## not found
         ## complain and return fallback
         print(f"Release notes section not found in PR number {pr['number']}!!")
-        return body
+        return (
+            f"PR number {pr['number']} appears not to have a release notes section! Please check"
+             "that the body containes a second level heading (starting with `##`) named `Release "
+             "notes`, and have the entries as lists."
+        )
     index2 = body.find('\n', index1) + 1 # the first line after the release notes line
     bodylines = body[index2:].splitlines()
     mdstring = ""
