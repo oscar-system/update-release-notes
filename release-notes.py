@@ -40,6 +40,7 @@ ENABLE_TWOLEVEL = conf["enabletwolevel"]
 REQUIRE_TWOLEVEL = False
 if ENABLE_TWOLEVEL:
     REQUIRE_TWOLEVEL = conf['requiretwolevel']
+LINEARHISTORY = conf.get('linearhistory') or False
 
 extra = conf.get('extra')
 
@@ -396,17 +397,20 @@ def split_pr_into_changelog(prs: List):
     prlist = [pr for pr in prs if pr not in toremovelist]
     return prlist
 
-def main(new_version: str) -> None:
+def main(new_version: str, previous_version: str) -> None:
     global extra
     if not extra:
         extra = ""
     major, minor, patchlevel = map(int, new_version.split("."))
+    _, previous_minor, previous_patchlevel = map(int, previous_version.split("."))
     release_type = 0 # 0 by default, 1 for point release, 2 for patch release
     if patchlevel == 0:
         # "major" release which changes just the minor version
         release_type = 1
-        previous_minor = minor - 1
-        basetag = f"v{major}.{previous_minor}.0"
+        if LINEARHISTORY:
+            basetag = f"v{major}.{previous_minor}.{previous_patchlevel}"
+        else:
+            basetag = f"v{major}.{previous_minor}.0"
         if REPONAME.endswith('Oscar.jl'):
             # dirty hack for OSCAR
             minor = previous_minor
@@ -415,7 +419,6 @@ def main(new_version: str) -> None:
     else:
         # "minor" release which changes just the patchlevel
         release_type = 2
-        previous_patchlevel = patchlevel - 1
         basetag = f"v{major}.{minor}.{previous_patchlevel}"
         if extra:
             extra = eval(extra)
@@ -478,6 +481,29 @@ def guess_version():
         versionstr = versionstr.split('-')[0]
     # return 
     return versionstr
+
+
+def latest_release():
+    jtag = subprocess.run(
+        [
+            "gh",
+            "release",
+            "list",
+            "--json=name,isLatest",
+            "-q",
+            ".[] | select(.isLatest == true)"
+        ],
+        shell=False,
+        check=True,
+        capture_output=True
+    )
+    print(jtag)
+    jtag = jtag.stdout.decode()
+    jtag = json.loads(jtag)["name"][1:]
+    jtag = jtag.split('.')
+    jtag[-1] = str(int(jtag[-1]))
+    jtag = ".".join(jtag)
+    return jtag
     
 
 
@@ -485,22 +511,7 @@ if __name__ == "__main__":
     # len(sys.argvs) = 1 means no arguments were given
     if len(sys.argv) == 1:
         itag = guess_version()
-        jtag = subprocess.run(
-            [
-                "gh",
-                "release",
-                "list",
-                "--json=name,isLatest",
-                "-q",
-                ".[] | select(.isLatest == true)"
-            ],
-            shell=False,
-            check=True,
-            capture_output=True
-        )
-        print(jtag)
-        jtag = jtag.stdout.decode()
-        jtag = json.loads(jtag)["name"][1:]
+        jtag = latest_release()
         jtag = jtag.split('.')
         jtag[-1] = str(int(jtag[-1])+1)
         jtag = ".".join(jtag)
@@ -511,10 +522,11 @@ if __name__ == "__main__":
         jver = parse(jtag)
         if jver > iver:
             itag = jtag
-        main(itag)
+        main(itag, jtag)
     elif len(sys.argv) != 2:
         usage(sys.argv[0])
     else:
         # version was provided as an argument
         # (python counts arrays from 0)
-        main(sys.argv[1])
+        jtag = latest_release()
+        main(sys.argv[1], jtag)
