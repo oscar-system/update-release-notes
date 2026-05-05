@@ -9,8 +9,8 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 
 ### Added
 
-- [#14](https://github.com/oscar-system/update-release-notes/pull/14) Add optional key to CONFFILE
-  to indicate if project is expected to have a linear history.
+- [#14](https://github.com/oscar-system/update-release-notes/pull/14) Handle releases which may have
+  patch versions as direct ancestors.
 
 ## 1.1 - 2026-04-08
 

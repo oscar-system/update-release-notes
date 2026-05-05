@@ -40,7 +40,7 @@ ENABLE_TWOLEVEL = conf["enabletwolevel"]
 REQUIRE_TWOLEVEL = False
 if ENABLE_TWOLEVEL:
     REQUIRE_TWOLEVEL = conf['requiretwolevel']
-LINEARHISTORY = conf.get('linearhistory') or False
+LinearHistory = False
 
 extra = conf.get('extra')
 
@@ -399,6 +399,7 @@ def split_pr_into_changelog(prs: List):
 
 def main(new_version: str, previous_version: str) -> None:
     global extra
+    global LinearHistory
     if not extra:
         extra = ""
     major, minor, patchlevel = map(int, new_version.split("."))
@@ -407,7 +408,7 @@ def main(new_version: str, previous_version: str) -> None:
     if patchlevel == 0:
         # "major" release which changes just the minor version
         release_type = 1
-        if LINEARHISTORY:
+        if LinearHistory:
             basetag = f"v{major}.{previous_minor}.{previous_patchlevel}"
         else:
             basetag = f"v{major}.{previous_minor}.0"
@@ -504,14 +505,45 @@ def latest_release():
     jtag[-1] = str(int(jtag[-1]))
     jtag = ".".join(jtag)
     return jtag
-    
+
+
+def is_ancestor(oldrelease):
+    # process throws non zero exit if not ancestor
+    s = subprocess.run(
+        [
+            "git",
+            "merge-base",
+            "--is-ancestor",
+            oldrelease,
+            "HEAD"
+        ],
+        check=True
+    )
+    if s.returncode == 0:
+        return True
+    elif s.returncode == 1:
+        return False
+    else:
+        print("git merge-base gave an unexpected return code!")
+        print(s.args)
+        print(s.returncode)
+        print(s.stdout)
+        print(s.stderr)
+        error("")
 
 
 if __name__ == "__main__":
+
+    if len(sys.argv) != 1 and len(sys.argv) != 2:
+        usage(sys.argv[0])
+    
+    jtag = latest_release()
+    LinearHistory = is_ancestor(jtag)
+
+    
     # len(sys.argvs) = 1 means no arguments were given
     if len(sys.argv) == 1:
         itag = guess_version()
-        jtag = latest_release()
         jtag = jtag.split('.')
         jtag[-1] = str(int(jtag[-1])+1)
         jtag = ".".join(jtag)
@@ -523,10 +555,7 @@ if __name__ == "__main__":
         if jver > iver:
             itag = jtag
         main(itag, jtag)
-    elif len(sys.argv) != 2:
-        usage(sys.argv[0])
     else:
         # version was provided as an argument
         # (python counts arrays from 0)
-        jtag = latest_release()
         main(sys.argv[1], jtag)
