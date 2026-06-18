@@ -514,10 +514,11 @@ def is_ancestor(oldrelease):
             "git",
             "merge-base",
             "--is-ancestor",
-            oldrelease,
+            f"{oldrelease}",
             "HEAD"
         ],
-        check=True
+        check=False,
+        capture_output=True
     )
     if s.returncode == 0:
         return True
@@ -527,8 +528,8 @@ def is_ancestor(oldrelease):
         print("git merge-base gave an unexpected return code!")
         print(s.args)
         print(s.returncode)
-        print(s.stdout)
-        print(s.stderr)
+        print("STDOUT:\t", s.stdout.decode().strip())
+        print("STDERR:\t",s.stderr.decode().strip())
         error("")
 
 
