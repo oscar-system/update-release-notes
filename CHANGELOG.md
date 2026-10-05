@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project tries to adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Upcoming]
+
+### Changed
+- [#16](https://github.com/oscar-system/update-release-notes/pull/16) Allow PR Body labels to
+  override labels inherited from PR in the case of `release notes: use body` label.
+
 ## 1.2 - 2026-06-24
 
 ### Added

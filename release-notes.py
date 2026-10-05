@@ -383,6 +383,14 @@ def split_pr_into_changelog(prs: List):
                                 "This might result in a TODO changelog item!"
                             )
                             continue
+                        # if PR Body has a label which conflicts with PR label, PR body label wins
+                        # since only label of PRTYPES is allowed, in this conflict, we have to
+                        # also remove any other label from the child PR for PRTYPES
+                        if label in PRTYPES:
+                            cpr['labels'] = [l for l in cpr['labels'] if l['name'] not in PRTYPES]
+                        # same conflict resolution logic as above, but for PR TOPICS
+                        elif label in TOPICS:
+                            cpr['labels'] = [l for l in cpr['labels'] if l['name'] not in TOPICS]
                         cpr['labels'].append({'name': label})
                     mindex = mans.span()[0]
                     line = line[0:mindex]
