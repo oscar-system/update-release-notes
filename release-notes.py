@@ -249,7 +249,8 @@ which we think might affect some users directly.
                 continue
             relnotes_file.write("### " + TOPICS[priorityobject] + "\n\n")
             if priorityobject == "breaking":
-                relnotes_file.write("> !These changes break compatibility from previous versions!")
+                relnotes_file.write("> [!CAUTION]\n")
+                relnotes_file.write("> These changes break compatibility from previous versions!")
                 relnotes_file.write("\n\n")
             if priorityobject in ['release notes: highlight', 'breaking']:
                 itervar = TOPICS

@@ -8,6 +8,8 @@ and this project tries to adhere to [Semantic Versioning](https://semver.org/spe
 ## [Upcoming]
 
 ### Changed
+- [#21](https://github.com/oscar-system/update-release-notes/pull/21) Fix warning about breaking
+  changes.
 - [#16](https://github.com/oscar-system/update-release-notes/pull/16) Allow PR Body labels to
   override labels inherited from PR in the case of `release notes: use body` label.
 
