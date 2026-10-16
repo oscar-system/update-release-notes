@@ -13,11 +13,6 @@ inputs:
     required: true
   
 
-outputs:
-  chagenlogfile:
-    description: "The updated release notes file"
-    value: ""
-
 runs:
   using: 'composite'
   steps:
