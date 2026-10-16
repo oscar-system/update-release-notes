@@ -37,6 +37,7 @@ jobs:
 
     # Run the update script
     - name: Run python script
+      id: release-notes
       uses: oscar-system/changelog-script@v1
       with:
         conffile: "dev/releases/config.toml"
@@ -61,7 +62,7 @@ jobs:
       with:
         commit-message: "Update Changelog on $(date +'%Y-%m-%d')"
         branch: update-changelog
-        title: "Update changelog"
+        title: "Update changelog for ${{ steps.release-notes.outputs.version }}"
         base: master
 ```
 
