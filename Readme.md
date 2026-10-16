@@ -63,6 +63,7 @@ jobs:
         commit-message: "Update Changelog on $(date +'%Y-%m-%d')"
         branch: update-changelog
         title: "Update changelog for ${{ steps.release-notes.outputs.version }}"
+        labels: "release notes: not needed"
         base: master
 ```
 
