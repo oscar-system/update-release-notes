@@ -554,16 +554,14 @@ if __name__ == "__main__":
     # len(sys.argvs) = 1 means no arguments were given
     if len(sys.argv) == 1:
         itag = guess_version()
-        jtag = jtag.split('.')
-        jtag[-1] = str(int(jtag[-1])+1)
-        jtag = ".".join(jtag)
+        ntag = jtag.split('.')
+        ntag[-1] = str(int(ntag[-1])+1)
+        ntag = ".".join(ntag)
 
-        # check which of itag and jtag is "newer"
+        # check which of itag and ntag is "newer"
         # (because at least Hecke does not tag project.toml versions as -dev)
-        iver = parse(itag)
-        jver = parse(jtag)
-        if jver > iver:
-            itag = jtag
+        if not itag or parse(ntag) > parse(itag):
+            itag = ntag
         main(itag, jtag)
     else:
         # version was provided as an argument
