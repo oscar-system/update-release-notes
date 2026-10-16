@@ -411,6 +411,9 @@ def main(new_version: str, previous_version: str) -> None:
     global LinearHistory
     if not extra:
         extra = ""
+    if "GITHUB_OUTPUT" in os.environ:
+        with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+            f.write(f"version={new_version}\n")
     major, minor, patchlevel = map(int, new_version.split("."))
     _, previous_minor, previous_patchlevel = map(int, previous_version.split("."))
     release_type = 0 # 0 by default, 1 for point release, 2 for patch release
