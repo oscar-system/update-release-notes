@@ -363,10 +363,11 @@ which we think might affect some users directly.
         os.rename(NEWFILE, FINALFILE)
 
 def split_pr_into_changelog(prs: List):
-    childprlist = []
-    toremovelist = []
+    prlist = []
     for pr in prs:
-        if has_label(pr, 'release notes: use body'):
+        if not has_label(pr, 'release notes: use body'):
+            prlist.append(pr)
+        else:
             mdstring = body_to_release_notes(pr).strip()
             mdlines = mdstring.split('\n')
             pattern = r'\{.*\}$'
@@ -399,11 +400,7 @@ def split_pr_into_changelog(prs: List):
                     warning(f"PR number #{pr['number']} is tagged as \"Use Body\", but the body "
                             "does not provide tags! This will result in TODO changelog items!")
                 cpr['body'] = f'{line.strip()}\n'
-                childprlist.append(cpr)
-                if pr not in toremovelist:
-                    toremovelist.append(pr)
-    prs.extend(childprlist)
-    prlist = [pr for pr in prs if pr not in toremovelist]
+                prlist.append(cpr)
     return prlist
 
 def main(new_version: str, previous_version: str) -> None:
