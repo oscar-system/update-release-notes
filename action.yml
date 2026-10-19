@@ -13,6 +13,11 @@ inputs:
     required: true
   
 
+outputs:
+  version:
+    description: "Version the release notes were generated for"
+    value: ${{ steps.make-release-notes.outputs.version }}
+
 runs:
   using: 'composite'
   steps:
