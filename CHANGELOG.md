@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project tries to adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Upcoming]
+
+### Changed
+- [#25](https://github.com/oscar-system/update-release-notes/pull/25) Fix order of entries with the
+  label "release notes: use body".
+- [#26](https://github.com/oscar-system/update-release-notes/pull/26) Fix base tag when no version
+  is given.
+- [#27](https://github.com/oscar-system/update-release-notes/pull/27) Add `version` to action output
+
 ## 1.3 - 2026-10-15
 
 ### Changed
