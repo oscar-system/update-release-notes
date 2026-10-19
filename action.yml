@@ -14,9 +14,6 @@ inputs:
   
 
 outputs:
-  chagenlogfile:
-    description: "The updated release notes file"
-    value: ""
   version:
     description: "Version the release notes were generated for"
     value: ${{ steps.make-release-notes.outputs.version }}
