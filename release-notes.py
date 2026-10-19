@@ -560,7 +560,10 @@ if __name__ == "__main__":
 
         # check which of itag and ntag is "newer"
         # (because at least Hecke does not tag project.toml versions as -dev)
-        if not itag or parse(ntag) > parse(itag):
+        if not itag:
+            warning(f"No version in Project.toml, using {ntag}")
+            itag = ntag
+        elif parse(ntag) > parse(itag):
             itag = ntag
         main(itag, jtag)
     else:
