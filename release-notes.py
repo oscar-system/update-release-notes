@@ -370,7 +370,7 @@ def split_pr_into_changelog(prs: List):
         else:
             mdstring = body_to_release_notes(pr).strip()
             mdlines = mdstring.split('\n')
-            pattern = r'\{.*\}$'
+            pattern = r'\{[^{}]*\}$'
             for line in mdlines:
                 cpr = copy.deepcopy(pr)
                 mans = re.search(pattern, line)
